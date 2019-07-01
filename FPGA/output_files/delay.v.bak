@@ -1,0 +1,17 @@
+module delay(en,clk,ed,ok);
+	input en,clk;
+	input [4:0] ed;
+	output ok;
+	reg [4:0] count;
+	reg ok;
+	always@(posedge clk)
+	begin
+		if(en)
+		begin
+			ok <= 0;
+			count <= count+5'b0001;
+		end
+		if(count == ed)
+			ok <= 1;
+	end
+endmodule

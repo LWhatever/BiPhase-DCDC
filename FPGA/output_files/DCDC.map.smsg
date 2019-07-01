@@ -1,0 +1,4 @@
+Info (10281): Verilog HDL Declaration information at DCDC.v(13): object "PWM1" differs only in case from object "pwm1" in the same scope
+Info (10281): Verilog HDL Declaration information at DCDC.v(15): object "PWM2" differs only in case from object "pwm2" in the same scope
+Warning (10268): Verilog HDL information at ADS8688.v(173): always construct contains both blocking and non-blocking assignments
+Warning (10268): Verilog HDL information at ADS8688.v(214): always construct contains both blocking and non-blocking assignments

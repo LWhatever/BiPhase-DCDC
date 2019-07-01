@@ -1,0 +1,6 @@
+module(
+output CS,
+output SCLK,
+output SDI,
+input SDO
+);

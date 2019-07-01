@@ -1,0 +1,196 @@
+module ADS8688
+(
+input wire rst_n,
+input CLK_50M,
+output reg CS,
+output wire SCLK,
+output reg SDO,
+input SDI,
+output reg RST=1,
+output reg [15:0] outrddat,                                         //Êä³öÊı¾İ
+input RDdata,
+input [2:0] dataAddr
+);
+
+reg [6:0] cnt;
+reg [2:0] order=0;
+reg [15:0] PRC=16'h0B00;     //program register configure
+reg [15:0] ch_sel;		//channel select
+reg [15:0] rddat;
+reg [15:0] rddat0;
+reg [15:0] rddat1;
+reg [15:0] rddat2;
+
+assign SCLK=~CS&CLK_2M;
+
+wire CLK_2M;/*synthesis keep*/
+clkdiv clk_inst
+(
+	.clk(CLK_50M),
+	.div(16'd25),
+	.clkout(CLK_2M)
+);
+////////////msp430 read data//////////////////
+always@(posedge CLK_50M or negedge rst_n)
+begin
+	if(!rst_n)
+		outrddat<=0;
+	else if(RDdata)
+	begin
+		case(dataAddr)
+		3'b001:outrddat<=rddat0;								//V_0
+		3'b010:outrddat<=rddat1;                              //V_6
+		3'b100:outrddat<=rddat2;                              //V_7
+		default: outrddat<=0;
+		endcase
+	end
+end
+////////////////SPI/////////////////
+always@(posedge CLK_2M or negedge rst_n)
+begin
+	if(!rst_n)
+	begin
+		cnt<=1'd0;
+		CS<=1'd0;
+		RST<=0;
+	end
+	else 
+	begin
+		RST<=1'd1;
+		if(cnt<7'd50)
+		begin
+			CS<=1'd1;
+			cnt<=cnt+1'd1;
+		end
+		else if(cnt>=7'd50&&cnt<=7'd81)
+		begin
+			CS<=0;
+			cnt<=cnt+1'd1;
+		end
+		if(cnt>7'd81)
+		begin
+			if(order==3'd0)
+			begin
+				order<=3'd1;
+				PRC<=16'h0B00;					//channe0 0 +-2.5*Vref
+			end
+			if(order==3'd1)
+			begin
+				order<=3'd2;
+				PRC<=16'h1700;					//channel6 0 +-2.5*Vref
+			end
+			if(order==3'd2)
+            begin
+                order<=3'd3;
+                PRC<=16'h1900;                    //channel7 0 +-2.5*Vref
+            end
+			else if(order==3'd3)
+			begin 
+				ch_sel<=16'hC000;				//channel0
+				order<=3'd4;
+				rddat0<=rddat;
+			end 
+			else if(order==3'd4)
+			begin 
+				ch_sel<=16'hD800;				//channel6
+				order<=3'd5;
+				rddat1<=rddat;
+			end 
+			else if(order==3'd5)
+            begin 
+                ch_sel<=16'hDC00;                //channel7
+                order<=3'd3;
+                rddat2<=rddat;
+            end 
+			// else if(order==3'd6)
+			// begin 
+			// 	ch_sel<=16'hDC00;                //channel7
+			// 	order<=3'd4;
+			// 	rddat2<=rddat;
+			// end
+			CS<=1'd1;
+			cnt<=7'd40;
+		end
+	end
+end
+
+always@(posedge CLK_2M or negedge rst_n) 
+begin
+	if(!rst_n)
+	begin
+		SDO<=0;
+	end
+	else if(order==3'd0||order==3'd1||order==3'd2)
+	begin
+		case(cnt)
+			7'd50:SDO<=PRC[15];
+			7'd51:SDO<=PRC[14];
+			7'd52:SDO<=PRC[13];
+			7'd53:SDO<=PRC[12];
+			7'd54:SDO<=PRC[11];
+			7'd55:SDO<=PRC[10];
+			7'd56:SDO<=PRC[9];
+			7'd57:SDO<=PRC[8];
+			7'd58:SDO<=PRC[7];
+			7'd59:SDO<=PRC[6];
+			7'd60:SDO<=PRC[5];
+			7'd61:SDO<=PRC[4];
+			7'd62:SDO<=PRC[3];
+			7'd63:SDO<=PRC[2];
+			7'd64:SDO<=PRC[1];
+			7'd65:SDO<=PRC[0];
+		endcase
+	end
+	else 
+	begin
+		case(cnt)
+			7'd50:SDO<=ch_sel[15];
+			7'd51:SDO<=ch_sel[14];
+			7'd52:SDO<=ch_sel[13];
+			7'd53:SDO<=ch_sel[12];
+			7'd54:SDO<=ch_sel[11];
+			7'd55:SDO<=ch_sel[10];
+			7'd56:SDO<=ch_sel[9];
+			7'd57:SDO<=ch_sel[8];
+			7'd58:SDO<=ch_sel[7];
+			7'd59:SDO<=ch_sel[6];
+			7'd60:SDO<=ch_sel[5];
+			7'd61:SDO<=ch_sel[4];
+			7'd62:SDO<=ch_sel[3];
+			7'd63:SDO<=ch_sel[2];
+			7'd64:SDO<=ch_sel[1];
+			7'd65:SDO<=ch_sel[0];
+		endcase
+	end
+end
+
+always@(negedge CLK_2M or negedge rst_n) 
+begin
+	if(!rst_n)
+	begin
+		rddat<=0;
+	end
+	else if(order>3'd2)
+	begin
+		case(cnt)
+			7'd67:rddat[15]=SDI;
+			7'd68:rddat[14]=SDI;
+			7'd69:rddat[13]=SDI;
+			7'd70:rddat[12]=SDI;
+			7'd71:rddat[11]=SDI;
+			7'd72:rddat[10]=SDI;
+			7'd73:rddat[9]=SDI;
+			7'd74:rddat[8]=SDI;
+			7'd75:rddat[7]=SDI;
+			7'd76:rddat[6]=SDI;
+			7'd77:rddat[5]=SDI;
+			7'd78:rddat[4]=SDI;
+			7'd79:rddat[3]=SDI;
+			7'd80:rddat[2]=SDI;
+			7'd81:rddat[1]=SDI;
+			7'd82:rddat[0]=SDI;
+		endcase
+	end	
+end
+
+endmodule
